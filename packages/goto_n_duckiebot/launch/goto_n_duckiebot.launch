@@ -1,0 +1,5 @@
+<launch>
+
+  <node pkg="goto_n_duckiebot" type="goto_n_duckiebot.py" name="goto_n_duckiebot" output="screen"/>
+
+</launch>
