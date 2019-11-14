@@ -4,4 +4,4 @@ set -e
 
 # YOUR CODE BELOW THIS LINE
 # ----------------------------------------------------------------------------
-roslaunch goto_n_duckiebot goto_n_duckiebot.launch
+roslaunch goto_n_duckiebot goto_n_duckiebot.launch veh:=$VEHICLE_NAME

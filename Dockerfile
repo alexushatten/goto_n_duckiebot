@@ -6,14 +6,14 @@ ARG REPO_NAME="goto_n_duckiebot"
 ARG ARCH=arm32v7
 ARG MAJOR=daffy
 ARG BASE_TAG=${MAJOR}-${ARCH}
-ARG BASE_IMAGE=dt-ros-commons
+ARG BASE_IMAGE=dt-core
 
 # define base image
 FROM duckietown/${BASE_IMAGE}:${BASE_TAG}
 
 # define repository path
 ARG REPO_NAME
-ARG REPO_PATH="${CATKIN_WS_DIR}/src/${REPO_NAME}"
+ARG REPO_PATH="${CATKIN_WS_DIR}/src/dt-core"
 WORKDIR "${REPO_PATH}"
 
 # create repo directory
@@ -33,7 +33,7 @@ RUN apt-get update \
 RUN pip install -r ${REPO_PATH}/dependencies-py.txt
 
 # copy the source code
-COPY . "${REPO_PATH}/"
+ADD . "${REPO_PATH}/"
 
 # build packages
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
