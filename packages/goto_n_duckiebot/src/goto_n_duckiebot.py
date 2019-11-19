@@ -22,7 +22,7 @@ class GoToNDuckiebotNode(DTROS):
         print ("all gucci")
         self.turn_type = -1
         #Init server subscriber
-        self.sub_message_from_server = rospy.Subscriber("/autobot22/movement_commands", Int32MultiArray, self.servermsgCB)
+        #self.sub_message_from_server = rospy.Subscriber("/autobot22/movement_commands", Int32MultiArray, self.servermsgCB)
         #Init publications
         self.pub_override_cmd = rospy.Publisher("~/autobot22/joy_mapper_node/joystick_override", BoolStamped, queue_size=10)
         self.pub_wheels_cmd = rospy.Publisher("~/autobot22/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=10)
@@ -30,7 +30,7 @@ class GoToNDuckiebotNode(DTROS):
         self.pub_id_and_type = rospy.Publisher("~turn_id_and_type",TurnIDandType, queue_size=1, latch=True)
 
         #initialized the turn commands
-        self.commands = [2,1,2,1,0,1,1,1,1]
+        self.commands = [3,2,3,3,1,3,3,3,3,3,3,2,3,4]
         self.previous_intersection_tag = -1
 
         self.sub_topic_mode = rospy.Subscriber("~mode", FSMState, self.cbMode, queue_size=1)
@@ -44,12 +44,6 @@ class GoToNDuckiebotNode(DTROS):
         rospy.sleep(1)
         self.pub_override_cmd.publish(override_msg)
 
-    def servermsgCB(self,command):
-        if not self.commands:
-            commands = command.data
-            self.process_msg(commands)
-            self.rate.sleep()
-
 
     def cbMode(self, mode_msg):
         #print mode_msg
@@ -62,6 +56,11 @@ class GoToNDuckiebotNode(DTROS):
     def cbTag(self, tag_msgs):
         if self.fsm_mode == "INTERSECTION_CONTROL" or self.fsm_mode == "INTERSECTION_COORDINATION" or self.fsm_mode == "INTERSECTION_PLANNING":
             #loop through list of april tags
+            while self.commands[0] == 3 or self.commands[0] == 4:
+                self.commands.pop(0)
+            
+            taginfo = (tag_msgs.infos)[idx_min]
+    
 
             # filter out the nearest apriltag
             dis_min = 999
@@ -76,8 +75,6 @@ class GoToNDuckiebotNode(DTROS):
                         idx_min = idx
 
             if idx_min != -1:
-                taginfo = (tag_msgs.infos)[idx_min]
-    
                 chosenTurn = self.commands[0]
                 self.turn_type = chosenTurn
                 id_and_type_msg = TurnIDandType()
@@ -89,9 +86,16 @@ class GoToNDuckiebotNode(DTROS):
                     self.pub_id_and_type.publish(id_and_type_msg)
                     self.commands.pop(0)
                     self.previous_intersection_tag = taginfo.id
-
+                    if 0 not in self.commands and 1 not in self.commands and 2 not in self.commands:
+                        stop_timer = 10 + (len(self.commands) - 1) * 3
+                        rospy.sleep(stop_timer)
+                        self.stop_navigation()
                     #rospy.loginfo("possible turns %s." %(availableTurns))
                     rospy.loginfo("Turn type now: %i" %(self.turn_type))
+    def stop_navigation (self):
+        override_msg = BoolStamped()	    
+        override_msg.data = True
+        self.pub_override_cmd.publish(override_msg)
 
 
 
