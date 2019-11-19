@@ -1,9 +1,12 @@
 <launch>
-  <!--remap from="goto_n_duckiebot/mode" to="fsm_node/mode"/>
+  <arg name="veh" default="autobot22" doc="Name of vehicle. ex: megaman"/>
+  <remap from="goto_n_duckiebot/mode" to="fsm_node/mode"/>
 	<remap from="goto_n_duckiebot/tag"  to="apriltags_postprocessing_node/apriltags_out"/>
-	<remap from="goto_n_duckiebot/turn_type" to="intersection_navigation_node/turn_type"/-->
+	<remap from="goto_n_duckiebot/turn_type" to="intersection_navigation_node/turn_type"/>
+  <remap from="goto_n_duckiebot/turn_id_and_type" to="random_april_tag_turns_node/turn_id_and_type"/>
 
-  <node pkg="goto_n_duckiebot" type="goto_n_duckiebot.py" name="goto_n_duckiebot" output="screen"/>
-  <node pkg="goto_n_duckiebot" type="start_navigation_node.py" name="start_navigation_node" output="screen"/>
-  
+  <group ns="$(arg veh)">
+    <node pkg="goto_n_duckiebot" type="goto_n_duckiebot.py" name="goto_n_duckiebot" output="screen"/>
+  </group>
+
 </launch>

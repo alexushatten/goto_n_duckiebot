@@ -20,22 +20,22 @@ class GoToNDuckiebotNode(DTROS):
         super(GoToNDuckiebotNode, self).__init__(node_name=node_name)
         self.veh_name = rospy.get_namespace().strip("/")
         print ("all gucci")
+        self.turn_type = -1
         #Init server subscriber
         self.sub_message_from_server = rospy.Subscriber("/autobot22/movement_commands", Int32MultiArray, self.servermsgCB)
         #Init publications
-        self.pub_override_cmd = rospy.Publisher("goto_n_duckiebot/start_override", BoolStamped, queue_size=10)
-        self.pub_wheels_cmd = rospy.Publisher("~/autobot21/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=10)
+        self.pub_override_cmd = rospy.Publisher("~/autobot22/joy_mapper_node/joystick_override", BoolStamped, queue_size=10)
+        self.pub_wheels_cmd = rospy.Publisher("~/autobot22/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=10)
         self.pub_turn_type = rospy.Publisher("~turn_type",Int16, queue_size=1, latch=True)
         self.pub_id_and_type = rospy.Publisher("~turn_id_and_type",TurnIDandType, queue_size=1, latch=True)
 
         #initialized the turn commands
-        self.commands = [0,0,0,0,0,0,0,0,0]
+        self.commands = [2,1,2,1,0,1,1,1,1]
+        self.previous_intersection_tag = -1
 
-        print ("subscribing")
         self.sub_topic_mode = rospy.Subscriber("~mode", FSMState, self.cbMode, queue_size=1)
         #self.fsm_mode = None #TODO what is this?
         self.sub_topic_tag = rospy.Subscriber("~tag", AprilTagsWithInfos, self.cbTag, queue_size=1)
-        print ("what")
         self.override_bot()
 
     def override_bot(self):
@@ -76,17 +76,22 @@ class GoToNDuckiebotNode(DTROS):
                         idx_min = idx
 
             if idx_min != -1:
+                taginfo = (tag_msgs.infos)[idx_min]
+    
                 chosenTurn = self.commands[0]
                 self.turn_type = chosenTurn
-                self.pub_turn_type.publish(self.turn_type)
-
                 id_and_type_msg = TurnIDandType()
                 id_and_type_msg.tag_id = taginfo.id
-                id_and_type_msg.turn_type = self.turn_type
-                self.pub_id_and_type.publish(id_and_type_msg)
 
-                #rospy.loginfo("possible turns %s." %(availableTurns))
-                #rospy.loginfo("Turn type now: %i" %(self.turn_type))
+                id_and_type_msg.turn_type = self.turn_type
+                if self.previous_intersection_tag != taginfo.id:
+                    self.pub_turn_type.publish(self.turn_type)
+                    self.pub_id_and_type.publish(id_and_type_msg)
+                    self.commands.pop(0)
+                    self.previous_intersection_tag = taginfo.id
+
+                    #rospy.loginfo("possible turns %s." %(availableTurns))
+                    rospy.loginfo("Turn type now: %i" %(self.turn_type))
 
 
 

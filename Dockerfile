@@ -4,7 +4,7 @@ ARG REPO_NAME="goto_n_duckiebot"
 # ==================================================>
 # ==> Do not change this code
 ARG ARCH=arm32v7
-ARG MAJOR=daffy
+ARG MAJOR=leds-fix
 ARG BASE_TAG=${MAJOR}-${ARCH}
 ARG BASE_IMAGE=dt-core
 
