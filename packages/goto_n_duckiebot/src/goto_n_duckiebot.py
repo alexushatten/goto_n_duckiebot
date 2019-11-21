@@ -30,13 +30,13 @@ class GoToNDuckiebotNode(DTROS):
         self.pub_id_and_type = rospy.Publisher("~turn_id_and_type",TurnIDandType, queue_size=1, latch=True)
 
         #initialized the turn commands
-        self.commands = [3,2,3,3,1,3,3,3,3,3,3,2,3,4]
+        self.commands = []
         self.previous_intersection_tag = -1
 
         self.sub_topic_mode = rospy.Subscriber("~mode", FSMState, self.cbMode, queue_size=1)
         #self.fsm_mode = None #TODO what is this?
         self.sub_topic_tag = rospy.Subscriber("~tag", AprilTagsWithInfos, self.cbTag, queue_size=1)
-        self.override_bot()
+        
 
     def override_bot(self):
         override_msg = BoolStamped()   	    
@@ -46,6 +46,11 @@ class GoToNDuckiebotNode(DTROS):
     
     def servermsgCB (self, data):
         print ("got message")
+        int = 0
+        for i in data.data:
+            self.commands.append(i)
+        print (self.commands)
+        self.override_bot()
 
 
     def cbMode(self, mode_msg):
