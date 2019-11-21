@@ -22,10 +22,10 @@ class GoToNDuckiebotNode(DTROS):
         print ("all gucci")
         self.turn_type = -1
         #Init server subscriber
-        #self.sub_message_from_server = rospy.Subscriber("/autobot22/movement_commands", Int32MultiArray, self.servermsgCB)
+        self.sub_message_from_server = rospy.Subscriber("~movement_commands", Int32MultiArray, self.servermsgCB)
         #Init publications
-        self.pub_override_cmd = rospy.Publisher("~/autobot22/joy_mapper_node/joystick_override", BoolStamped, queue_size=10)
-        self.pub_wheels_cmd = rospy.Publisher("~/autobot22/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=10)
+        self.pub_override_cmd = rospy.Publisher("~joystick_override", BoolStamped, queue_size=10)
+        self.pub_wheels_cmd = rospy.Publisher("~wheels_cmd", WheelsCmdStamped, queue_size=10)
         self.pub_turn_type = rospy.Publisher("~turn_type",Int16, queue_size=1, latch=True)
         self.pub_id_and_type = rospy.Publisher("~turn_id_and_type",TurnIDandType, queue_size=1, latch=True)
 
@@ -43,6 +43,9 @@ class GoToNDuckiebotNode(DTROS):
         override_msg.data = False
         rospy.sleep(1)
         self.pub_override_cmd.publish(override_msg)
+    
+    def servermsgCB (self, data):
+        print ("got message")
 
 
     def cbMode(self, mode_msg):
@@ -58,8 +61,7 @@ class GoToNDuckiebotNode(DTROS):
             #loop through list of april tags
             while self.commands[0] == 3 or self.commands[0] == 4:
                 self.commands.pop(0)
-            
-            taginfo = (tag_msgs.infos)[idx_min]
+    
     
 
             # filter out the nearest apriltag
@@ -75,6 +77,7 @@ class GoToNDuckiebotNode(DTROS):
                         idx_min = idx
 
             if idx_min != -1:
+                taginfo = (tag_msgs.infos)[idx_min]
                 chosenTurn = self.commands[0]
                 self.turn_type = chosenTurn
                 id_and_type_msg = TurnIDandType()
