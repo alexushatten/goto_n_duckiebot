@@ -46,11 +46,15 @@ class GoToNDuckiebotNode(DTROS):
     
     def servermsgCB (self, data):
         print ("got message")
-        int = 0
         for i in data.data:
             self.commands.append(i)
         print (self.commands)
         self.override_bot()
+        
+        if 0 not in self.commands and 1 not in self.commands and 2 not in self.commands:
+            stop_timer = 10 + (len(self.commands) - 1) * 3
+            rospy.sleep(stop_timer)
+            self.stop_navigation()
 
 
     def cbMode(self, mode_msg):
@@ -60,6 +64,7 @@ class GoToNDuckiebotNode(DTROS):
             self.turn_type = -1
             self.pub_turn_type.publish(self.turn_type)
             #rospy.loginfo("Turn type now: %i" %(self.turn_type))
+
 
     def cbTag(self, tag_msgs):
         if self.fsm_mode == "INTERSECTION_CONTROL" or self.fsm_mode == "INTERSECTION_COORDINATION" or self.fsm_mode == "INTERSECTION_PLANNING":
@@ -95,15 +100,21 @@ class GoToNDuckiebotNode(DTROS):
                     self.commands.pop(0)
                     self.previous_intersection_tag = taginfo.id
                     if 0 not in self.commands and 1 not in self.commands and 2 not in self.commands:
-                        stop_timer = 10 + (len(self.commands) - 1) * 3
+                        stop_timer = 10 + (len(self.commands) - 1) * 6
                         rospy.sleep(stop_timer)
                         self.stop_navigation()
                     #rospy.loginfo("possible turns %s." %(availableTurns))
                     rospy.loginfo("Turn type now: %i" %(self.turn_type))
+
     def stop_navigation (self):
         override_msg = BoolStamped()	    
         override_msg.data = True
         self.pub_override_cmd.publish(override_msg)
+        
+        wheel_msg = WheelsCmdStamped()	    
+        wheel_msg.vel_left = 0
+        wheel_msg.vel_right = 0
+        self.pub_wheels_cmd.publish(wheel_msg)
 
 
 
