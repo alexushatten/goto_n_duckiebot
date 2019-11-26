@@ -7,7 +7,7 @@ import rospy
 import math
 
 from duckietown import DTROS
-from std_msgs.msg import Int32MultiArray
+from std_msgs.msg import Int32MultiArray, Float32MultiArray
 from duckietown_msgs.msg import WheelsCmdStamped
 from std_msgs.msg import String, Int16
 from duckietown_msgs.msg import FSMState, AprilTagsWithInfos, BoolStamped, TurnIDandType
@@ -23,7 +23,7 @@ class GoToNDuckiebotNode(DTROS):
         self.turn_type = -1
         #Init server subscriber
         self.sub_message_from_server = rospy.Subscriber("~movement_commands", Int32MultiArray, self.servermsgCB)
-        self.sub_watchtower_delta = rospy.Subscriber("~positional_diff", Int32MultiArray, self.precisionCB)
+        self.sub_watchtower_delta = rospy.Subscriber("~positional_diff", Float32MultiArray, self.precisionCB)
         #Init publications
         self.pub_override_cmd = rospy.Publisher("~joystick_override", BoolStamped, queue_size=10)
         self.pub_wheels_cmd = rospy.Publisher("~wheels_cmd", WheelsCmdStamped, queue_size=10)
