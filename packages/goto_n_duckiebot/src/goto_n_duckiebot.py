@@ -23,11 +23,22 @@ class GoToNDuckiebotNode(DTROS):
         self.turn_type = -1
         #Init server subscriber
         self.sub_message_from_server = rospy.Subscriber("~movement_commands", Int32MultiArray, self.servermsgCB)
+        self.sub_watchtower_delta = rospy.Subscriber("~positional_diff", Int32MultiArray, self.precisionCB)
         #Init publications
         self.pub_override_cmd = rospy.Publisher("~joystick_override", BoolStamped, queue_size=10)
         self.pub_wheels_cmd = rospy.Publisher("~wheels_cmd", WheelsCmdStamped, queue_size=10)
         self.pub_turn_type = rospy.Publisher("~turn_type",Int16, queue_size=1, latch=True)
         self.pub_id_and_type = rospy.Publisher("~turn_id_and_type",TurnIDandType, queue_size=1, latch=True)
+
+        #Init gain of wheels
+        rospy.set_param('/kinematics_node/gain', '0.5')
+
+        #Init deltas
+        self.delta_x = 100
+        self.delta_y = 100
+        #Init thresholds
+        self.thresh_x = 0.10
+        self.thresh_y = 0.10
 
         #initialized the turn commands
         self.commands = []
@@ -55,6 +66,13 @@ class GoToNDuckiebotNode(DTROS):
             stop_timer = 10 + (len(self.commands) - 1) * 3
             rospy.sleep(stop_timer)
             self.stop_navigation()
+    
+    def precisionCB(self, delta):
+        self.delta_x = delta.data[0]
+        self.delta_y = delta.data[1]
+
+        print(self.delta_x)
+        print(self.delta_y)
 
 
     def cbMode(self, mode_msg):
@@ -72,8 +90,6 @@ class GoToNDuckiebotNode(DTROS):
             while self.commands[0] == 3 or self.commands[0] == 4:
                 self.commands.pop(0)
     
-    
-
             # filter out the nearest apriltag
             dis_min = 999
             idx_min = -1
@@ -100,9 +116,9 @@ class GoToNDuckiebotNode(DTROS):
                     self.commands.pop(0)
                     self.previous_intersection_tag = taginfo.id
                     if 0 not in self.commands and 1 not in self.commands and 2 not in self.commands:
-                        stop_timer = 10 + (len(self.commands) - 1) * 6
+                        stop_timer = 10
                         rospy.sleep(stop_timer)
-                        self.stop_navigation()
+                        self.final_precision()
                     #rospy.loginfo("possible turns %s." %(availableTurns))
                     rospy.loginfo("Turn type now: %i" %(self.turn_type))
 
@@ -116,8 +132,15 @@ class GoToNDuckiebotNode(DTROS):
         wheel_msg.vel_right = 0
         self.pub_wheels_cmd.publish(wheel_msg)
 
-
-
+    def final_precision(self):
+        rospy.set_param('/autobot21/kinematics_node/gain', '0.3')
+        while self.delta_x > self.thresh_x or self.delta_y > self.thresh_y:
+            #Init gain of wheels
+            print ("not there yet")
+        
+        self.stop_navigation()
+        print("arrived at location")
+        
 
     def onShutdown(self):
         """Shutdown procedure.
