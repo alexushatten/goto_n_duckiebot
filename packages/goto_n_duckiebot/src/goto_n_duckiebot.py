@@ -31,7 +31,7 @@ class GoToNDuckiebotNode(DTROS):
         self.pub_id_and_type = rospy.Publisher("~turn_id_and_type",TurnIDandType, queue_size=1, latch=True)
 
         #Init gain of wheels
-        rospy.set_param('/{}/kinematics_node/gain'.format(self.veh_name), '0.9')
+        rospy.set_param('/{}/kinematics_node/gain'.format(self.veh_name), 0.9)
 
         #Init deltas
         self.delta_x = 100
@@ -133,7 +133,7 @@ class GoToNDuckiebotNode(DTROS):
         self.pub_wheels_cmd.publish(wheel_msg)
 
     def final_precision(self):
-        rospy.set_param('/{}/kinematics_node/gain'.format(self.veh_name), '0.6')
+        rospy.set_param('/{}/kinematics_node/gain'.format(self.veh_name), 0.45)
         while self.delta_x > self.thresh_x or self.delta_y > self.thresh_y:
             #Init gain of wheels
             print ("not there yet")
