@@ -39,6 +39,8 @@ class GoToNDuckiebotNode(DTROS):
         #Init thresholds
         self.thresh_x = 0.10
         self.thresh_y = 0.10
+        self.start_precision = False
+
 
         #initialized the turn commands
         self.commands = []
@@ -61,34 +63,31 @@ class GoToNDuckiebotNode(DTROS):
             self.commands.append(i)
         print (self.commands)
         self.override_bot()
-        
-        if 0 not in self.commands and 1 not in self.commands and 2 not in self.commands:
-            stop_timer = 10
-            rospy.sleep(stop_timer)
-            self.final_precision()
     
     def precisionCB(self, delta):
         self.delta_x = delta.data[0]
         self.delta_y = delta.data[1]
-
-        print(self.delta_x)
-        print(self.delta_y)
+        if self.start_precision == True:
+            if (self.delta_x < self.thresh_x) and (self.delta_y < self.thresh_y):
+                    self.stop_navigation()
+                    print("arrived at location")
+                    self.keep_driving = False
 
 
     def cbMode(self, mode_msg):
         #print mode_msg
         self.fsm_mode = mode_msg.state
-        if(self.fsm_mode != mode_msg.INTERSECTION_CONTROL):
-            self.turn_type = -1
-            self.pub_turn_type.publish(self.turn_type)
             #rospy.loginfo("Turn type now: %i" %(self.turn_type))
 
 
     def cbTag(self, tag_msgs):
         if self.fsm_mode == "INTERSECTION_CONTROL" or self.fsm_mode == "INTERSECTION_COORDINATION" or self.fsm_mode == "INTERSECTION_PLANNING":
             #loop through list of april tags
-            while self.commands[0] == 3 or self.commands[0] == 4:
-                self.commands.pop(0)
+            if self.commands:
+                while self.commands[0] == 3 or self.commands[0] == 4:
+                    self.commands.pop(0)
+                    if not self.commands:
+                        break
     
             # filter out the nearest apriltag
             dis_min = 999
@@ -104,7 +103,10 @@ class GoToNDuckiebotNode(DTROS):
 
             if idx_min != -1:
                 taginfo = (tag_msgs.infos)[idx_min]
-                chosenTurn = self.commands[0]
+                if self.commands:
+                    chosenTurn = self.commands[0]
+                else:
+                    chosenTurn = 1
                 self.turn_type = chosenTurn
                 id_and_type_msg = TurnIDandType()
                 id_and_type_msg.tag_id = taginfo.id
@@ -113,12 +115,13 @@ class GoToNDuckiebotNode(DTROS):
                 if self.previous_intersection_tag != taginfo.id:
                     self.pub_turn_type.publish(self.turn_type)
                     self.pub_id_and_type.publish(id_and_type_msg)
-                    self.commands.pop(0)
+                    if self.commands:
+                        self.commands.pop(0)
                     self.previous_intersection_tag = taginfo.id
                     if 0 not in self.commands and 1 not in self.commands and 2 not in self.commands:
-                        stop_timer = 10
-                        rospy.sleep(stop_timer)
-                        self.final_precision()
+                        rospy.loginfo("Turn type now: %i" %(self.turn_type))
+                        self.start_precision = True
+                    
                     #rospy.loginfo("possible turns %s." %(availableTurns))
                     rospy.loginfo("Turn type now: %i" %(self.turn_type))
 
@@ -131,15 +134,6 @@ class GoToNDuckiebotNode(DTROS):
         wheel_msg.vel_left = 0
         wheel_msg.vel_right = 0
         self.pub_wheels_cmd.publish(wheel_msg)
-
-    def final_precision(self):
-        rospy.set_param('/{}/kinematics_node/gain'.format(self.veh_name), 0.45)
-        while self.delta_x > self.thresh_x or self.delta_y > self.thresh_y:
-            #Init gain of wheels
-            print ("not there yet")
-        
-        self.stop_navigation()
-        print("arrived at location")
         
 
     def onShutdown(self):
