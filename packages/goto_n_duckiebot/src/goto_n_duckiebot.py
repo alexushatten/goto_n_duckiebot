@@ -57,11 +57,6 @@ class GoToNDuckiebotNode(DTROS):
         self.veh_name = rospy.get_namespace().strip("/")
         self.turn_type = -1
         self.start_precision = False
-        
-        #Init server subscriber
-        self.sub_message_from_server = rospy.Subscriber("~movement_commands", Int32MultiArray, self.servermsgCB)
-        self.sub_watchtower_delta = rospy.Subscriber("~positional_diff", Float32MultiArray, self.precisionCB)
-        self.sub_topic_mode = rospy.Subscriber("~mode", FSMState, self.cbMode, queue_size=1)
 
         #Init publications
         self.pub_override_cmd = rospy.Publisher("~joystick_override", BoolStamped, queue_size=10)
@@ -69,6 +64,11 @@ class GoToNDuckiebotNode(DTROS):
         self.pub_turn_type = rospy.Publisher("~turn_type",Int16, queue_size=1, latch=True)
         self.pub_id_and_type = rospy.Publisher("~turn_id_and_type",TurnIDandType, queue_size=1, latch=True)
         self.pub_arrival_msgs = rospy.Publisher("~arrival_msg",BoolStamped, queue_size=1, latch=True)
+        
+        #Init server subscriber
+        self.sub_message_from_server = rospy.Subscriber("~movement_commands", Int32MultiArray, self.servermsgCB)
+        self.sub_watchtower_delta = rospy.Subscriber("~positional_diff", Float32MultiArray, self.precisionCB)
+        self.sub_topic_mode = rospy.Subscriber("~mode", FSMState, self.cbMode, queue_size=1)
 
         #Initialize the 
         self.string_commands= ["Left", "Straight", "Right"]
@@ -81,8 +81,8 @@ class GoToNDuckiebotNode(DTROS):
         self.delta_y = 100
         
         #Init thresholds
-        self.thresh_x = 0.10
-        self.thresh_y = 0.10
+        self.thresh_x = 0.20
+        self.thresh_y = 0.20
 
         #initialized the turn commands
         self.commands = []
@@ -91,7 +91,7 @@ class GoToNDuckiebotNode(DTROS):
         rospy.loginfo("Initialized")
 
     def override_bot(self):
-         """Used to Override the Duckiebot commands
+        """Used to Override the Duckiebot commands
 
          When called, the function will start indefinite navigation.
          It publishes a boolean value that allows us to override indefinite navigation. 
@@ -110,7 +110,7 @@ class GoToNDuckiebotNode(DTROS):
         self.pub_override_cmd.publish(override_msg)
     
     def servermsgCB (self, data):
-         """This function receives the intersection commands from the server and 
+        """This function receives the intersection commands from the server and 
          turns them into a commands list to be used in a later function.
 
          When the ~movement_commands subscriber receives a waypoint message from the server, 
@@ -130,11 +130,13 @@ class GoToNDuckiebotNode(DTROS):
         for i in data.data:
             self.commands.append(i)
         
-        print (self.commands)
         self.override_bot()
+        if self.commands[0] == 4:
+            self.start_precision = True
+            self.commands.pop(0)
     
     def precisionCB(self, delta):
-         """Starts the robot specific finally accuracy to get to the termination positoin
+        """Starts the robot specific finally accuracy to get to the termination positoin
 
         When the function is called, it reads in the delta x/y (difference between the current
         and desired x/y positions). If the duckiebot has completed its final intersection, the function 
@@ -163,7 +165,7 @@ class GoToNDuckiebotNode(DTROS):
                     print("I have arrived at the desired location.")
 
     def cbMode(self, mode_msg):
-         """Sets the FSM mode
+        """Sets the FSM mode
 
         This function sets the FSM mode to intersection control when it reaches an intersection
 
@@ -180,7 +182,7 @@ class GoToNDuckiebotNode(DTROS):
             self.pub_turn_type.publish(self.turn_type)
 
     def cbTag(self, tag_msgs):
-         """Reads the April tag and understand that it is located at an intersection.
+        """Reads the April tag and understand that it is located at an intersection.
 
         This function was taken from the dt-core package and slightly adapted to fit the Goto-N needs
         
@@ -228,10 +230,11 @@ class GoToNDuckiebotNode(DTROS):
                     self.previous_intersection_tag = taginfo.id
                     if 0 not in self.commands and 1 not in self.commands and 2 not in self.commands:
                         self.start_precision = True
+                        self.commands = []
                         rospy.loginfo(self.turn_type)
 
     def stop_navigation (self):
-         """Stops the Duckiebot movements
+        """Stops the Duckiebot movements
 
         When this function is called, the duckiebot should come to a stop. This is achieved by
 
