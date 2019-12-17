@@ -252,7 +252,8 @@ class GoToNDuckiebotNode(DTROS):
     def onShutdown(self):
         """Shutdown procedure.
 
-        Publishes a zero velocity command at shutdown."""
+        Publishes a zero velocity command at shutdown.
+        """
 
         override_msg = BoolStamped()	    
         override_msg.data = True
