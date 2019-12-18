@@ -69,20 +69,21 @@ class GoToNDuckiebotNode(DTROS):
         self.sub_message_from_server = rospy.Subscriber("~movement_commands", Int32MultiArray, self.servermsgCB)
         self.sub_watchtower_delta = rospy.Subscriber("~positional_diff", Float32MultiArray, self.precisionCB)
         self.sub_topic_mode = rospy.Subscriber("~mode", FSMState, self.cbMode, queue_size=1)
+        self.sub_topic_type = rospy.Subscriber("~tag", AprilTagsWithInfos, self.cbTag, queue_size=1)
 
         #Initialize the 
         self.string_commands= ["Left", "Straight", "Right"]
 
         #Init gain of wheels
-        rospy.set_param('/{}/kinematics_node/gain'.format(self.veh_name), 0.9)
+        rospy.set_param('/{}/kinematics_node/gain'.format(self.veh_name), 0.7)
 
         #Init deltas
         self.delta_x = 100
         self.delta_y = 100
         
         #Init thresholds
-        self.thresh_x = 0.20
-        self.thresh_y = 0.20
+        self.thresh_x = 0.30
+        self.thresh_y = 0.30
 
         #initialized the turn commands
         self.commands = []
@@ -129,7 +130,7 @@ class GoToNDuckiebotNode(DTROS):
         #create movement commands list
         for i in data.data:
             self.commands.append(i)
-        
+        print (self.commands)
         self.override_bot()
         if self.commands[0] == 4:
             self.start_precision = True
@@ -208,30 +209,39 @@ class GoToNDuckiebotNode(DTROS):
 
             if idx_min != -1:
                 taginfo = (tag_msgs.infos)[idx_min]
-                if self.commands:
-                    chosenTurn = self.commands[0]
-                else:
-                    self.stop_navigation()
-                    not_arrived_msg = BoolStamped()	    
-                    not_arrived_msg.data = False
-                    self.pub_arrival_msgs.publish(not_arrived_msg)
-                    print("could not find termination position, will restart planner on server")
-                    chosenTurn = -1
-                self.turn_type = chosenTurn
-                id_and_type_msg = TurnIDandType()
-                id_and_type_msg.tag_id = taginfo.id
-
-                id_and_type_msg.turn_type = self.turn_type
-                if self.previous_intersection_tag != taginfo.id:
+                if self.previous_intersection_tag != taginfo.id and self.start_precision == False:
+                    if self.commands:
+                        chosenTurn = self.commands[0]
+                        self.commands.pop(0)
+                    else:
+                        self.stop_navigation()
+                        not_arrived_msg = BoolStamped()	    
+                        not_arrived_msg.data = False
+                        self.pub_arrival_msgs.publish(not_arrived_msg)
+                        print("could not find termination position, will restart planner on server")
+                        chosenTurn = -1
+                    self.turn_type = chosenTurn
+                    id_and_type_msg = TurnIDandType()
+                    id_and_type_msg.tag_id = taginfo.id
+                    print(self.turn_type)
+                    id_and_type_msg.turn_type = self.turn_type
                     self.pub_turn_type.publish(self.turn_type)
                     self.pub_id_and_type.publish(id_and_type_msg)
-                    if self.commands:
-                        self.commands.pop(0)
                     self.previous_intersection_tag = taginfo.id
                     if 0 not in self.commands and 1 not in self.commands and 2 not in self.commands:
                         self.start_precision = True
                         self.commands = []
                         rospy.loginfo(self.turn_type)
+                    
+                    idx_min = -1
+                if self.start_precision == True:
+                    if self.previous_intersection_tag != taginfo.id:
+                        self.start_precision = False
+                        self.stop_navigation()
+                        not_arrived_msg = BoolStamped()	    
+                        not_arrived_msg.data = False
+                        self.pub_arrival_msgs.publish(not_arrived_msg)
+                        print("could not find termination position, will restart planner on server")
 
     def stop_navigation (self):
         """Stops the Duckiebot movements
